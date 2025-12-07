@@ -103,7 +103,18 @@ with col1:
     
 with col2:
     st.subheader("Faktor Akademik dan Kehidupan")
-    cgpa = st.number_input("Rata-rata IPK (CGPA)", min_value=2.0, max_value=10.0, value=7.5, step=0.1)
+    
+    # --- PERUBAHAN DI SINI (1/2): UI INPUT GPA ---
+    gpa_input = st.number_input(
+        "Rata-rata Nilai (GPA)", 
+        min_value=0.0, 
+        max_value=4.0, 
+        value=3.0, 
+        step=0.1, 
+        help="Masukkan nilai GPA Anda (skala 0.0 hingga 4.0)."
+    )
+    # ----------------------------------------------
+    
     hours = st.number_input("Jam Belajar/Kerja per hari", min_value=0, max_value=20, value=5, step=1)
     sleep = st.selectbox("Durasi Tidur", UNIQUE_OPTS['Sleep Duration'])
     diet = st.selectbox("Kebiasaan Makan (Dietary Habits)", UNIQUE_OPTS['Dietary Habits'])
@@ -122,12 +133,16 @@ with col3:
 st.markdown("---")
 if st.button("Prediksi Tingkat Risiko"):
     
+    # --- PERUBAHAN DI SINI (2/2): PERHITUNGAN CGPA ---
+    # Hitung CGPA: GPA * 2.5
+    cgpa_actual = gpa_input * 2.5
+    
     input_data = {
         "Gender": gender,
         "City": city,
-        "Profession": profession, # Termasuk "Others"
+        "Profession": profession,
         "Age": age,
-        "CGPA": cgpa,
+        "CGPA": cgpa_actual, # Menggunakan hasil perhitungan
         "Work/Study Hours": hours,
         "Sleep Duration": sleep,
         "Dietary Habits": diet,
