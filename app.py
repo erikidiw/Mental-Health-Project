@@ -41,6 +41,9 @@ except Exception as e:
 # ==========================
 
 def preprocess_and_predict(input_data):
+    """
+    Mengubah input mentah menjadi data yang siap diprediksi.
+    """
     df_single = pd.DataFrame([input_data])
     df_single = df_single[feature_cols]
 
@@ -132,7 +135,7 @@ if st.button("Prediksi Tingkat Risiko"):
         "City": city,
         "Profession": profession,
         "Age": age,
-        "CGPA": cgpa_actual, # Menggunakan hasil perhitungan
+        "CGPA": cgpa_actual, 
         "Work/Study Hours": hours,
         "Sleep Duration": sleep,
         "Dietary Habits": diet,
@@ -148,7 +151,10 @@ if st.button("Prediksi Tingkat Risiko"):
 
     st.subheader("Hasil Prediksi")
     
-    if prediction == 1:
+    # Notifikasi 3-Kelas
+    if prediction == 2:
         st.error("Risiko Tinggi (DEPRESI). Segera cari bantuan profesional.")
-    else:
+    elif prediction == 1:
+        st.warning("Risiko Sedang (PERHATIAN). Perlu pantauan dan manajemen stres.")
+    else: # prediction == 0
         st.success("Risiko Rendah (NORMAL). Pertahankan pola hidup seimbang.")
