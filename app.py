@@ -5,7 +5,7 @@ from category_encoders.target_encoder import TargetEncoder
 import numpy as np 
 
 # ==========================
-# 🔧 Custom Preprocessing Classes (Diperlukan untuk joblib)
+# 🔧 Custom Preprocessing Classes
 # ==========================
 class CustomOrdinalMapper:
     def __init__(self, mappings):
@@ -88,13 +88,12 @@ def preprocess_and_predict(input_data):
     # Konversi ke float
     df_processed = df_single.apply(pd.to_numeric, errors='coerce').fillna(0).astype(float)
     
-    # Prediksi menghasilkan 0, 1, atau 2
     prediction = pipeline.predict(df_processed)[0]
     return prediction
 
 
 # ==========================
-# 🧠 STREAMLIT UI (Logika Output yang Dikoreksi)
+# 🧠 STREAMLIT UI
 # ==========================
 
 st.title("Sistem Prediksi Risiko Depresi Mahasiswa")
@@ -126,7 +125,7 @@ with col3:
     financial = st.slider("Stres Keuangan (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     
     history = st.selectbox("Riwayat Mental Keluarga", UNIQUE_OPTS['Family History'])
-    suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts'])
+    suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts']) 
 
 
 # Tombol Prediksi
@@ -156,22 +155,15 @@ if st.button("Prediksi Tingkat Risiko"):
 
     st.subheader("Hasil Prediksi")
     
-    # 1. BOBOT OVERRIDE TERTINGGI (KOREKSI LOGIKA UTAMA)
-    if suicide == 'Yes':
-        st.error("⚠️ **RISIKO KRITIS: DEPRESI**")
-        st.write("Jawaban **'Pernah terpikir Bunuh Diri?'** diutamakan di atas prediksi model.")
-        st.warning("Segera cari bantuan profesional, hubungi layanan krisis atau konseling kesehatan mental.")
-        
-    # 2. KLASIFIKASI DARI MODEL (0, 1, 2 -> Depresi / Tidak Depresi)
-    elif prediction >= 1: 
-        # Jika model memprediksi 1 (Sedang) atau 2 (Tinggi) -> Kategori DEPRESI
+    # Logika output BINER, hanya berdasarkan prediksi model (0, 1, 2)
+    
+    if prediction >= 1: 
         st.error("🔥 **POTENSI/RISIKO DEPRESI**")
         if prediction == 2:
-            st.warning("Risiko sangat tinggi. Butuh perhatian dan tindakan segera.")
+            st.warning("Risiko sangat tinggi menurut model. Konsultasi dan tindakan segera disarankan.")
         else:
-            st.info("Risiko sedang. Disarankan mencari dukungan konseling.")
+            st.info("Risiko sedang menurut model. Disarankan mencari dukungan konseling.")
         
     else: # prediction == 0 
-        # Kategori TIDAK DEPRESI
         st.success("✅ **TIDAK DEPRESI**")
-        st.info("Risiko rendah. Pertahankan pola hidup seimbang dan manajemen stres yang baik.")
+        st.info("Risiko rendah menurut model. Pertahankan pola hidup seimbang.")
