@@ -2,37 +2,63 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+# Import TargetEncoder, meskipun jarang digunakan secara langsung, diperlukan 
+# agar joblib dapat memuat objek TargetEncoder dengan benar.
+from category_encoders.target_encoder import TargetEncoder
 
 # ==========================
-# 🔧 Custom Preprocessing Classes
+# 🔧 Custom Preprocessing Classes (Harus diimpor agar joblib tidak error)
 # ==========================
 class CustomOrdinalMapper:
+    # Mengimplementasikan ulang kelas agar joblib dapat memuat artefak
     def __init__(self, mappings):
-        self.mappings = {col: map_dict for col, map_dict in mappings}
-        self.cols = [col for col, _ in mappings]
+        # Menerima data mapping dari file PKL
+        if isinstance(mappings, list):
+            self.mappings = {col: map_dict for col, map_dict in mappings}
+        else:
+            self.mappings = mappings
+            
+        self.cols = list(self.mappings.keys())
         
     def fit(self, X, y=None):
         return self
         
     def transform(self, X):
-        pass
+        X_copy = X.copy()
+        for col, mapping in self.mappings.items():
+            if col in X_copy.columns:
+                # Menerapkan mapping, mengisi NaN dengan 0 (seperti di skrip training)
+                X_copy[col] = X_copy[col].map(mapping).fillna(0).astype(float)
+        return X_copy[self.cols]
+
 
 # ==========================
 # 🚀 Load Artifacts (Pipeline, Encoders, etc.)
 # ==========================
 try:
-    artifacts = joblib.load('pipeline_artifacts.pkl')
+    # Pastikan file ini berada di direktori yang sama dengan app.py
+    artifacts = joblib.load('pipeline_artifacts.pkl') 
     pipeline = artifacts['pipeline']
     label_encoders = artifacts['label_encoders']
     target_encoder = artifacts['target_encoder']
-    ordinal_mapper = artifacts['ordinal_mapper']
+    
+    # Instansiasi ulang CustomOrdinalMapper dari data yang disimpan
+    ordinal_mapping_data = artifacts['ordinal_mapper'].mappings 
+    ordinal_mapper = CustomOrdinalMapper(ordinal_mapping_data) 
+    
     feature_cols = artifacts['feature_cols']
     UNIQUE_OPTS = artifacts['unique_options']
+    
+    RISK_MAP = {
+        0: "Risiko Rendah (TIDAK DEPRESI)",
+        1: "Risiko Sedang (POTENSI DEPRESI)",
+        2: "Risiko Tinggi (DEPRESI KUAT)",
+    }
     
     st.success("Model dan Preprocessor berhasil dimuat.")
     
 except Exception as e:
-    st.error(f"Gagal memuat artifacts. Pastikan 'pipeline_artifacts.pkl' sudah dibuat ulang dengan benar: {e}")
+    st.error(f"Gagal memuat artifacts. Pastikan 'pipeline_artifacts.pkl' sudah dibuat dan ada di direktori yang sama: {e}")
     st.stop()
 
 
@@ -47,7 +73,7 @@ def preprocess_and_predict(input_data):
     df_single = pd.DataFrame([input_data])
     df_single = df_single[feature_cols]
 
-    # Cleaning
+    # Cleaning Dasar
     for col in ['Sleep Duration', 'Financial Stress']:
         if col in df_single.columns:
             df_single[col] = df_single[col].astype(str).str.replace("'", "").str.strip()
@@ -55,16 +81,26 @@ def preprocess_and_predict(input_data):
     df_single['Financial Stress'] = df_single['Financial Stress'].replace('?', '0')
 
     # Ordinal Mapping
-    df_single[ordinal_mapper.cols] = ordinal_mapper.transform(df_single)
+    df_single_ordinal = ordinal_mapper.transform(df_single)
+    for col in ordinal_mapper.cols:
+        df_single[col] = df_single_ordinal[col]
     
     # Label Encoding
-    for col, le in label_encoders.items():
+    label_cols = list(label_encoders.keys())
+    for col in label_cols:
         if col in df_single.columns:
             df_single[col] = df_single[col].astype(str)
-            df_single[col] = df_single[col].apply(lambda x: le.transform([x])[0] if x in le.classes_ else -1)
+            le = label_encoders[col]
+            def encode_label(val):
+                # Handle unknown values (nilai yang tidak ada di classes_ dikembalikan -1)
+                if val in le.classes_:
+                    return le.transform([val])[0]
+                return -1 
+            df_single[col] = df_single[col].apply(encode_label)
     
     # Target Encoding
     target_cols = ['City', 'Profession']
+    # TargetEncoder.transform menangani nilai baru dengan nilai rata-rata target dari training data.
     df_single[target_cols] = target_encoder.transform(df_single[target_cols])
     
     # Konversi ke float
@@ -141,7 +177,8 @@ if st.button("Prediksi Tingkat Risiko"):
         "Dietary Habits": diet,
         "Degree": degree,
         "Have you ever had suicidal thoughts ?": suicide,
-        "Financial Stress": str(financial) + ".0",
+        # Format Financial Stress harus sesuai dengan mapping di PKL (misal '3.0')
+        "Financial Stress": str(financial) + ".0", 
         "Family History of Mental Illness": history,
         "Academic Pressure": academic,
         "Study Satisfaction": satisfaction,
@@ -152,8 +189,20 @@ if st.button("Prediksi Tingkat Risiko"):
 
     st.subheader("Hasil Prediksi")
     
-    # --- MAPPING KE OUTPUT BINER (0 atau 1) ---
-    if prediction >= 1: # Jika Sedang (1) atau Tinggi (2)
-        st.error("Risiko Tinggi (DEPRESI). Segera cari bantuan profesional. (Output: 1)")
-    else: # Jika Rendah (0)
-        st.success("Risiko Rendah (TIDAK DEPRESI). Pertahankan pola hidup seimbang. (Output: 0)")
+    # --- LOGIKA OVERRIDE BOBOT TERTINGGI (Paling Kritis) ---
+    if suicide == 'Yes':
+        st.error("⚠️ **RISIKO KRITIS**")
+        st.write("Jawaban **'Pernah terpikir Bunuh Diri?'** memicu peringatan risiko tertinggi.")
+        st.warning("Segera cari bantuan profesional, hubungi layanan krisis atau konseling kesehatan mental.")
+        
+    elif prediction == 2: # Risiko Tinggi dari Model
+        st.error(f"🔥 **{RISK_MAP[2]}**")
+        st.warning("Butuh perhatian segera. Konsultasi dan pemantauan ketat diperlukan.")
+        
+    elif prediction == 1: # Risiko Sedang dari Model
+        st.warning(f"🟡 **{RISK_MAP[1]}**")
+        st.info("Disarankan untuk mencari dukungan konseling dan memperbaiki pola hidup.")
+        
+    else: # prediction == 0
+        st.success(f"✅ **{RISK_MAP[0]}**")
+        st.info("Risiko rendah. Pertahankan pola hidup seimbang dan manajemen stres yang baik.")
