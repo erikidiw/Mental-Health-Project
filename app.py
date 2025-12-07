@@ -21,6 +21,7 @@ class CustomOrdinalMapper:
 # 🚀 Load Artifacts (Pipeline, Encoders, etc.)
 # ==========================
 try:
+    # Memuat semua objek yang diperlukan dari file .pkl
     artifacts = joblib.load('pipeline_artifacts.pkl')
     pipeline = artifacts['pipeline']
     label_encoders = artifacts['label_encoders']
@@ -86,11 +87,17 @@ st.write("Masukkan data kamu. Lalu tekan tombol prediksi di bawah.")
 
 col1, col2, col3 = st.columns(3)
 
+# --- Tambahkan "Others" ke daftar profesi ---
+profession_options = UNIQUE_OPTS['Profession'] + ["Others"]
+
 with col1:
     st.subheader("Informasi Dasar")
+    
     gender = st.selectbox("Jenis Kelamin", UNIQUE_OPTS['Gender'])
     city = st.selectbox("Kota Tinggal", UNIQUE_OPTS['City'])
-    profession = st.selectbox("Pekerjaan", UNIQUE_OPTS['Profession'])
+    # Menggunakan daftar yang sudah ditambah "Others"
+    profession = st.selectbox("Pekerjaan", profession_options) 
+    
     age = st.number_input("Umur", min_value=10, max_value=80, value=25, step=1)
     degree = st.selectbox("Jenjang Pendidikan (Degree)", UNIQUE_OPTS['Degree'])
     
@@ -107,8 +114,6 @@ with col3:
     satisfaction = st.slider("Kepuasan Belajar (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=4, step=1)
     financial = st.slider("Stres Keuangan (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     
-    # Social Weakness Dihilangkan
-    
     history = st.selectbox("Riwayat Mental Keluarga", UNIQUE_OPTS['Family History'])
     suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts'])
 
@@ -120,14 +125,13 @@ if st.button("Prediksi Tingkat Risiko"):
     input_data = {
         "Gender": gender,
         "City": city,
-        "Profession": profession,
+        "Profession": profession, # Termasuk "Others"
         "Age": age,
         "CGPA": cgpa,
         "Work/Study Hours": hours,
         "Sleep Duration": sleep,
         "Dietary Habits": diet,
         "Degree": degree,
-        # "Social Weakness" dihilangkan
         "Have you ever had suicidal thoughts ?": suicide,
         "Financial Stress": str(financial) + ".0",
         "Family History of Mental Illness": history,
@@ -139,10 +143,7 @@ if st.button("Prediksi Tingkat Risiko"):
 
     st.subheader("Hasil Prediksi")
     
-    # Notifikasi dan Emote Dihilangkan
     if prediction == 1:
-        st.error("Risiko Tinggi (Depresi). Segera cari bantuan profesional.")
-        st.write("Tingkat Risiko: DEPRESI (1)")
+        st.error("Risiko Tinggi (DEPRESI). Segera cari bantuan profesional.")
     else:
-        st.success("Risiko Rendah (Normal). Pertahankan pola hidup seimbang.")
-        st.write("Tingkat Risiko: TIDAK DEPRESI (0)")
+        st.success("Risiko Rendah (NORMAL). Pertahankan pola hidup seimbang.")
