@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 
 # ==========================
-# 🔧 Custom Preprocessing Classes (Wajib ada untuk memuat PKL)
+# 🔧 Custom Preprocessing Classes
 # ==========================
 class CustomOrdinalMapper:
     def __init__(self, mappings):
@@ -147,14 +147,13 @@ if st.button("Prediksi Tingkat Risiko"):
         "Study Satisfaction": satisfaction,
     }
 
+    # Prediksi menghasilkan nilai 0, 1, atau 2 (Risiko Rendah, Sedang, Tinggi)
     prediction = preprocess_and_predict(input_data)
 
     st.subheader("Hasil Prediksi")
     
-    # Notifikasi 3-Kelas
-    if prediction == 2:
-        st.error("Risiko Tinggi (DEPRESI). Segera cari bantuan profesional.")
-    elif prediction == 1:
-        st.warning("Risiko Sedang (PERHATIAN). Perlu pantauan dan manajemen stres.")
-    else: # prediction == 0
-        st.success("Risiko Rendah (NORMAL). Pertahankan pola hidup seimbang.")
+    # --- MAPPING KE OUTPUT BINER (0 atau 1) ---
+    if prediction >= 1: # Jika Sedang (1) atau Tinggi (2)
+        st.error("Risiko Tinggi (DEPRESI). Segera cari bantuan profesional. (Output: 1)")
+    else: # Jika Rendah (0)
+        st.success("Risiko Rendah (TIDAK DEPRESI). Pertahankan pola hidup seimbang. (Output: 0)")
