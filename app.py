@@ -21,20 +21,18 @@ class CustomOrdinalMapper:
 # 🚀 Load Artifacts (Pipeline, Encoders, etc.)
 # ==========================
 try:
-    # Memuat semua objek yang diperlukan dari file .pkl
     artifacts = joblib.load('pipeline_artifacts.pkl')
     pipeline = artifacts['pipeline']
     label_encoders = artifacts['label_encoders']
     target_encoder = artifacts['target_encoder']
     ordinal_mapper = artifacts['ordinal_mapper']
     feature_cols = artifacts['feature_cols']
-    # Memuat opsi unik
     UNIQUE_OPTS = artifacts['unique_options']
     
     st.success("Model dan Preprocessor berhasil dimuat.")
     
 except Exception as e:
-    st.error(f"Gagal memuat artifacts. Pastikan 'pipeline_artifacts.pkl' sudah dibuat ulang tanpa Social Weakness: {e}")
+    st.error(f"Gagal memuat artifacts. Pastikan 'pipeline_artifacts.pkl' sudah dibuat ulang dengan benar: {e}")
     st.stop()
 
 
@@ -43,10 +41,6 @@ except Exception as e:
 # ==========================
 
 def preprocess_and_predict(input_data):
-    """
-    Mengubah input mentah menjadi data yang siap diprediksi 
-    menggunakan encoder yang sudah dilatih, lalu melakukan prediksi.
-    """
     df_single = pd.DataFrame([input_data])
     df_single = df_single[feature_cols]
 
@@ -87,7 +81,7 @@ st.write("Masukkan data kamu. Lalu tekan tombol prediksi di bawah.")
 
 col1, col2, col3 = st.columns(3)
 
-# --- Tambahkan "Others" ke daftar profesi ---
+# Tambahkan "Others" ke daftar profesi
 profession_options = UNIQUE_OPTS['Profession'] + ["Others"]
 
 with col1:
@@ -102,7 +96,7 @@ with col1:
 with col2:
     st.subheader("Faktor Akademik dan Kehidupan")
     
-    # Input GPA (akan diubah menjadi CGPA * 2.5)
+    # Input GPA (Max 4.0)
     gpa_input = st.number_input(
         "Rata-rata Nilai (GPA)", 
         min_value=0.0, 
@@ -122,8 +116,6 @@ with col3:
     satisfaction = st.slider("Kepuasan Belajar (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=4, step=1)
     financial = st.slider("Stres Keuangan (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     
-    # Social Weakness Dihilangkan dari UI
-    
     history = st.selectbox("Riwayat Mental Keluarga", UNIQUE_OPTS['Family History'])
     suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts'])
 
@@ -132,7 +124,7 @@ with col3:
 st.markdown("---")
 if st.button("Prediksi Tingkat Risiko"):
     
-    # Hitung CGPA: GPA * 2.5
+    # Perhitungan CGPA: GPA * 2.5
     cgpa_actual = gpa_input * 2.5
     
     input_data = {
@@ -150,7 +142,6 @@ if st.button("Prediksi Tingkat Risiko"):
         "Family History of Mental Illness": history,
         "Academic Pressure": academic,
         "Study Satisfaction": satisfaction,
-        # "Social Weakness" dihilangkan dari input_data
     }
 
     prediction = preprocess_and_predict(input_data)
