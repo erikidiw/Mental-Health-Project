@@ -1,18 +1,14 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
-# Import TargetEncoder, meskipun jarang digunakan secara langsung, diperlukan 
-# agar joblib dapat memuat objek TargetEncoder dengan benar.
 from category_encoders.target_encoder import TargetEncoder
+import numpy as np # Diperlukan untuk numpy array handling
 
 # ==========================
 # 🔧 Custom Preprocessing Classes (Harus diimpor agar joblib tidak error)
 # ==========================
 class CustomOrdinalMapper:
-    # Mengimplementasikan ulang kelas agar joblib dapat memuat artefak
     def __init__(self, mappings):
-        # Menerima data mapping dari file PKL
         if isinstance(mappings, list):
             self.mappings = {col: map_dict for col, map_dict in mappings}
         else:
@@ -27,7 +23,6 @@ class CustomOrdinalMapper:
         X_copy = X.copy()
         for col, mapping in self.mappings.items():
             if col in X_copy.columns:
-                # Menerapkan mapping, mengisi NaN dengan 0 (seperti di skrip training)
                 X_copy[col] = X_copy[col].map(mapping).fillna(0).astype(float)
         return X_copy[self.cols]
 
@@ -48,12 +43,6 @@ try:
     
     feature_cols = artifacts['feature_cols']
     UNIQUE_OPTS = artifacts['unique_options']
-    
-    RISK_MAP = {
-        0: "Risiko Rendah (TIDAK DEPRESI)",
-        1: "Risiko Sedang (POTENSI DEPRESI)",
-        2: "Risiko Tinggi (DEPRESI KUAT)",
-    }
     
     st.success("Model dan Preprocessor berhasil dimuat.")
     
@@ -100,7 +89,6 @@ def preprocess_and_predict(input_data):
     
     # Target Encoding
     target_cols = ['City', 'Profession']
-    # TargetEncoder.transform menangani nilai baru dengan nilai rata-rata target dari training data.
     df_single[target_cols] = target_encoder.transform(df_single[target_cols])
     
     # Konversi ke float
@@ -177,7 +165,6 @@ if st.button("Prediksi Tingkat Risiko"):
         "Dietary Habits": diet,
         "Degree": degree,
         "Have you ever had suicidal thoughts ?": suicide,
-        # Format Financial Stress harus sesuai dengan mapping di PKL (misal '3.0')
         "Financial Stress": str(financial) + ".0", 
         "Family History of Mental Illness": history,
         "Academic Pressure": academic,
@@ -191,18 +178,18 @@ if st.button("Prediksi Tingkat Risiko"):
     
     # --- LOGIKA OVERRIDE BOBOT TERTINGGI (Paling Kritis) ---
     if suicide == 'Yes':
-        st.error("⚠️ **RISIKO KRITIS**")
+        st.error("⚠️ **RISIKO KRITIS: DEPRESI**")
         st.write("Jawaban **'Pernah terpikir Bunuh Diri?'** memicu peringatan risiko tertinggi.")
         st.warning("Segera cari bantuan profesional, hubungi layanan krisis atau konseling kesehatan mental.")
         
-    elif prediction == 2: # Risiko Tinggi dari Model
-        st.error(f"🔥 **{RISK_MAP[2]}**")
-        st.warning("Butuh perhatian segera. Konsultasi dan pemantauan ketat diperlukan.")
+    # --- LOGIKA BINER (Depresi vs Tidak Depresi) ---
+    elif prediction >= 1: # Jika model memprediksi 1 (Sedang) atau 2 (Tinggi) -> DEPRESI
+        st.error("🔥 **POTENSI/RISIKO DEPRESI**")
+        if prediction == 2:
+            st.warning("Risiko sangat tinggi. Butuh perhatian dan tindakan segera.")
+        else:
+            st.info("Risiko sedang. Disarankan mencari dukungan konseling.")
         
-    elif prediction == 1: # Risiko Sedang dari Model
-        st.warning(f"🟡 **{RISK_MAP[1]}**")
-        st.info("Disarankan untuk mencari dukungan konseling dan memperbaiki pola hidup.")
-        
-    else: # prediction == 0
-        st.success(f"✅ **{RISK_MAP[0]}**")
+    else: # prediction == 0 (Risiko Rendah) -> TIDAK DEPRESI
+        st.success("✅ **TIDAK DEPRESI**")
         st.info("Risiko rendah. Pertahankan pola hidup seimbang dan manajemen stres yang baik.")
