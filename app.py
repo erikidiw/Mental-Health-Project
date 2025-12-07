@@ -95,16 +95,14 @@ with col1:
     
     gender = st.selectbox("Jenis Kelamin", UNIQUE_OPTS['Gender'])
     city = st.selectbox("Kota Tinggal", UNIQUE_OPTS['City'])
-    # Menggunakan daftar yang sudah ditambah "Others"
     profession = st.selectbox("Pekerjaan", profession_options) 
-    
     age = st.number_input("Umur", min_value=10, max_value=80, value=25, step=1)
     degree = st.selectbox("Jenjang Pendidikan (Degree)", UNIQUE_OPTS['Degree'])
     
 with col2:
     st.subheader("Faktor Akademik dan Kehidupan")
     
-    # --- PERUBAHAN DI SINI (1/2): UI INPUT GPA ---
+    # Input GPA (akan diubah menjadi CGPA * 2.5)
     gpa_input = st.number_input(
         "Rata-rata Nilai (GPA)", 
         min_value=0.0, 
@@ -113,7 +111,6 @@ with col2:
         step=0.1, 
         help="Masukkan nilai GPA Anda (skala 0.0 hingga 4.0)."
     )
-    # ----------------------------------------------
     
     hours = st.number_input("Jam Belajar/Kerja per hari", min_value=0, max_value=20, value=5, step=1)
     sleep = st.selectbox("Durasi Tidur", UNIQUE_OPTS['Sleep Duration'])
@@ -125,6 +122,8 @@ with col3:
     satisfaction = st.slider("Kepuasan Belajar (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=4, step=1)
     financial = st.slider("Stres Keuangan (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     
+    # Social Weakness Dihilangkan dari UI
+    
     history = st.selectbox("Riwayat Mental Keluarga", UNIQUE_OPTS['Family History'])
     suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts'])
 
@@ -133,7 +132,6 @@ with col3:
 st.markdown("---")
 if st.button("Prediksi Tingkat Risiko"):
     
-    # --- PERUBAHAN DI SINI (2/2): PERHITUNGAN CGPA ---
     # Hitung CGPA: GPA * 2.5
     cgpa_actual = gpa_input * 2.5
     
@@ -152,6 +150,7 @@ if st.button("Prediksi Tingkat Risiko"):
         "Family History of Mental Illness": history,
         "Academic Pressure": academic,
         "Study Satisfaction": satisfaction,
+        # "Social Weakness" dihilangkan dari input_data
     }
 
     prediction = preprocess_and_predict(input_data)
