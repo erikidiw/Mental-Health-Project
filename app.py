@@ -15,28 +15,25 @@ class CustomOrdinalMapper:
         return self
         
     def transform(self, X):
-        # Fungsi ini akan digantikan oleh transform asli dari objek yang dimuat
         pass
 
 # ==========================
 # 🚀 Load Artifacts (Pipeline, Encoders, etc.)
 # ==========================
 try:
-    # Memuat semua objek yang diperlukan dari file .pkl
     artifacts = joblib.load('pipeline_artifacts.pkl')
     pipeline = artifacts['pipeline']
     label_encoders = artifacts['label_encoders']
     target_encoder = artifacts['target_encoder']
     ordinal_mapper = artifacts['ordinal_mapper']
     feature_cols = artifacts['feature_cols']
+    # Memuat opsi unik
+    UNIQUE_OPTS = artifacts['unique_options']
     
-    st.success("✅ Model dan Preprocessor berhasil dimuat.")
+    st.success("Model dan Preprocessor berhasil dimuat.")
     
-except FileNotFoundError:
-    st.error("❌ File 'pipeline_artifacts.pkl' tidak ditemukan. Jalankan skrip 'create_pipeline.py' terlebih dahulu.")
-    st.stop()
 except Exception as e:
-    st.error(f"❌ Gagal memuat artifacts: {e}")
+    st.error(f"Gagal memuat artifacts. Pastikan 'pipeline_artifacts.pkl' sudah dibuat ulang tanpa Social Weakness: {e}")
     st.stop()
 
 
@@ -84,52 +81,42 @@ def preprocess_and_predict(input_data):
 # 🧠 STREAMLIT UI
 # ==========================
 
-st.title("🩺 Sistem Prediksi Risiko Depresi Mahasiswa")
+st.title("Sistem Prediksi Risiko Depresi Mahasiswa")
 st.write("Masukkan data kamu. Lalu tekan tombol prediksi di bawah.")
 
-# Menggunakan kolom untuk tata letak yang lebih baik
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("Informasi Dasar")
-    gender = st.selectbox("Jenis Kelamin", ['Male', 'Female', 'Others'])
+    gender = st.selectbox("Jenis Kelamin", UNIQUE_OPTS['Gender'])
+    city = st.selectbox("Kota Tinggal", UNIQUE_OPTS['City'])
+    profession = st.selectbox("Pekerjaan", UNIQUE_OPTS['Profession'])
     age = st.number_input("Umur", min_value=10, max_value=80, value=25, step=1)
-    degree = st.selectbox("Jenjang Pendidikan (Degree)", ['B.Pharm', 'BSc', 'BA', 'BCA', 'M.Tech', 'Others'])
-    city = st.text_input("Kota Tinggal (Contoh: Mumbai)")
-    profession = st.text_input("Pekerjaan (Contoh: Student)")
+    degree = st.selectbox("Jenjang Pendidikan (Degree)", UNIQUE_OPTS['Degree'])
     
 with col2:
-    st.subheader("Faktor Akademik & Kehidupan")
+    st.subheader("Faktor Akademik dan Kehidupan")
     cgpa = st.number_input("Rata-rata IPK (CGPA)", min_value=2.0, max_value=10.0, value=7.5, step=0.1)
     hours = st.number_input("Jam Belajar/Kerja per hari", min_value=0, max_value=20, value=5, step=1)
-    sleep = st.selectbox("Durasi Tidur", ['Less than 5 hours', '5-6 hours', '7-8 hours', 'More than 8 hours', 'Others'])
-    diet = st.selectbox("Kebiasaan Makan (Dietary Habits)", ['Healthy', 'Moderate', 'Unhealthy'])
+    sleep = st.selectbox("Durasi Tidur", UNIQUE_OPTS['Sleep Duration'])
+    diet = st.selectbox("Kebiasaan Makan (Dietary Habits)", UNIQUE_OPTS['Dietary Habits'])
     
 with col3:
     st.subheader("Faktor Risiko Mental")
     academic = st.slider("Tekanan Akademik (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     satisfaction = st.slider("Kepuasan Belajar (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=4, step=1)
+    financial = st.slider("Stres Keuangan (1=Rendah, 5=Tinggi)", min_value=1, max_value=5, value=3, step=1)
     
-    # --- PERUBAHAN STRES KEUANGAN DI SINI ---
-    financial = st.slider(
-        "Stres Keuangan (1=Rendah, 5=Tinggi)", 
-        min_value=1, 
-        max_value=5, 
-        value=3, 
-        step=1 # Hanya bilangan bulat
-    )
-    # --- AKHIR PERUBAHAN ---
+    # Social Weakness Dihilangkan
     
-    social = st.selectbox("Kelemahan Sosial (Social Weakness)", ['No', 'Yes'])
-    history = st.selectbox("Riwayat Mental Keluarga", ["No", "Yes"])
-    suicide = st.selectbox("Pernah terpikir Bunuh Diri?", ["No", "Yes"])
+    history = st.selectbox("Riwayat Mental Keluarga", UNIQUE_OPTS['Family History'])
+    suicide = st.selectbox("Pernah terpikir Bunuh Diri?", UNIQUE_OPTS['Suicidal Thoughts'])
 
 
-# Tombol Prediksi di luar kolom agar posisinya tunggal
+# Tombol Prediksi
 st.markdown("---")
-if st.button("🔍 Prediksi Tingkat Risiko"):
+if st.button("Prediksi Tingkat Risiko"):
     
-    # Kumpulkan input data
     input_data = {
         "Gender": gender,
         "City": city,
@@ -140,21 +127,22 @@ if st.button("🔍 Prediksi Tingkat Risiko"):
         "Sleep Duration": sleep,
         "Dietary Habits": diet,
         "Degree": degree,
-        "Social Weakness": social,
+        # "Social Weakness" dihilangkan
         "Have you ever had suicidal thoughts ?": suicide,
-        "Financial Stress": str(financial) + ".0", # Format integer slider menjadi string "X.0" agar sesuai dengan mapper training
+        "Financial Stress": str(financial) + ".0",
         "Family History of Mental Illness": history,
         "Academic Pressure": academic,
         "Study Satisfaction": satisfaction,
     }
 
-    # Prediksi
     prediction = preprocess_and_predict(input_data)
 
     st.subheader("Hasil Prediksi")
+    
+    # Notifikasi dan Emote Dihilangkan
     if prediction == 1:
-        st.error("⚠️ Risiko Tinggi (Depresi). Segera cari bantuan profesional.")
+        st.error("Risiko Tinggi (Depresi). Segera cari bantuan profesional.")
         st.write("Tingkat Risiko: DEPRESI (1)")
     else:
-        st.success("💚 Risiko Rendah (Normal). Pertahankan pola hidup seimbang.")
+        st.success("Risiko Rendah (Normal). Pertahankan pola hidup seimbang.")
         st.write("Tingkat Risiko: TIDAK DEPRESI (0)")
